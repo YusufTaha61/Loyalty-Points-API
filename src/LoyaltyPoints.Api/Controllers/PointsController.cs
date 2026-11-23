@@ -14,8 +14,7 @@ public class PointsController(AppDbContext db) : ControllerBase
     [HttpPost("earn")]
     public async Task<ActionResult<PointsResultResponse>> Earn(int customerId, PointsRequest request)
     {
-        if (request.Points <= 0)
-            return BadRequest("Puan 0'dan büyük olmalı.");
+
 
         var customer = await db.Customers.FindAsync(customerId);
         if (customer is null) return NotFound();
@@ -31,14 +30,16 @@ public class PointsController(AppDbContext db) : ControllerBase
     [HttpPost("redeem")]
     public async Task<ActionResult<PointsResultResponse>> Redeem(int customerId, PointsRequest request)
     {
-        if (request.Points <= 0)
-            return BadRequest("Puan 0'dan büyük olmalı.");
+
 
         var customer = await db.Customers.FindAsync(customerId);
         if (customer is null) return NotFound();
 
         if (customer.PointsBalance < request.Points)
-            return BadRequest($"Yetersiz puan. Mevcut bakiye: {customer.PointsBalance}");
+            return Problem(
+                title: "Yetersiz puan",
+                detail: $"Mevcut bakiye: {customer.PointsBalance}, istenen: {request.Points}",
+                statusCode: StatusCodes.Status400BadRequest);
 
         customer.PointsBalance -= request.Points;
         var transaction = AddTransaction(customerId, request, TransactionType.Redeem);
@@ -70,7 +71,7 @@ public class PointsController(AppDbContext db) : ControllerBase
             CustomerId = customerId,
             Points = request.Points,
             Type = type,
-            Description = request.Description
+            Description = request.Description ?? string.Empty
         };
         db.PointTransactions.Add(transaction);
         return transaction;

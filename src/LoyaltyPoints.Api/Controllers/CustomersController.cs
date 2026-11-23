@@ -35,7 +35,10 @@ public class CustomersController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<CustomerResponse>> Create(CreateCustomerRequest request)
     {
         if (await db.Customers.AnyAsync(c => c.Email == request.Email))
-            return Conflict("Bu e-posta ile kayıtlı bir müşteri zaten var.");
+            return Problem(
+                title: "E-posta kullanımda",
+                detail: "Bu e-posta ile kayıtlı bir müşteri zaten var.",
+                statusCode: StatusCodes.Status409Conflict);
 
         var customer = new Customer { Name = request.Name, Email = request.Email };
         db.Customers.Add(customer);
@@ -52,7 +55,10 @@ public class CustomersController(AppDbContext db) : ControllerBase
         if (customer is null) return NotFound();
 
         if (await db.Customers.AnyAsync(c => c.Email == request.Email && c.Id != id))
-            return Conflict("Bu e-posta başka bir müşteride kayıtlı.");
+            return Problem(
+                title: "E-posta kullanımda",
+                detail: "Bu e-posta başka bir müşteride kayıtlı.",
+                statusCode: StatusCodes.Status409Conflict);
 
         customer.Name = request.Name;
         customer.Email = request.Email;
